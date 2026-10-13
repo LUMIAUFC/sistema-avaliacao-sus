@@ -36,7 +36,7 @@ function failingStorage() {
 function open(storage, opts = {}) {
   const saved = [];
   const network = [];
-  const dom = new JSDOM('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body>' + PAGE + '</body></html>', {
+  const dom = new JSDOM(PAGE, {
     runScripts: 'dangerously',
     url: 'https://artefato.local/',
     beforeParse(win) {
@@ -66,6 +66,17 @@ function open(storage, opts = {}) {
   };
   return api;
 }
+
+test('documento completo: doctype, charset, viewport, idioma e título', () => {
+  assert.match(PAGE, /^<!doctype html>/i);
+  const p = open(sharedStorage());
+  assert.equal(p.d.compatMode, 'CSS1Compat', 'modo padrão, não quirks');
+  assert.equal(p.d.documentElement.lang, 'pt-BR');
+  assert.equal(p.d.characterSet, 'UTF-8');
+  assert.match(p.q('meta[name=viewport]').content, /width=device-width/);
+  assert.equal(p.d.title, 'Avaliação SUS');
+  assert.ok(p.q('head style'), 'estilos no cabeçalho');
+});
 
 test('interface: 10 itens com 5 opções rotuladas e agrupadas', () => {
   const p = open(sharedStorage());

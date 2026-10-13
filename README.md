@@ -2,6 +2,8 @@
 
 Aplicação web, em arquivo único, para aplicar a Escala de Usabilidade do Sistema (System Usability Scale, SUS), calcular a pontuação, apresentar o resultado e exportar PDF e CSV. Funciona inteiramente no navegador, sem servidor, banco de dados ou envio de respostas pela internet.
 
+**Acesse o sistema:** https://lumiaufc.github.io/sistema-avaliacao-sus/
+
 ## Objetivos
 
 - Apoiar avaliadores na aplicação padronizada do SUS durante testes de usabilidade.
@@ -30,7 +32,7 @@ Aplicação web, em arquivo único, para aplicar a Escala de Usabilidade do Sist
 ## Como executar
 
 - **Uso direto:** abra `dist/index.html` em um navegador moderno (Chrome, Edge, Firefox ou Safari atualizados). Não há instalação.
-- **Publicação:** hospede `dist/index.html` em qualquer servidor estático (GitHub Pages, servidor da universidade). Nenhuma configuração de backend é necessária.
+- **Publicação:** a cada envio para a branch `main`, o workflow `.github/workflows/pages.yml` publica `dist/index.html` no GitHub Pages. O arquivo também pode ser hospedado em qualquer servidor estático, sem backend.
 - A geração de PDF usa a biblioteca jsPDF 2.5.1, carregada do CDN cdnjs. Sem conexão no primeiro acesso, o PDF fica indisponível (a interface avisa) e o CSV continua funcionando. Para uso totalmente offline, substitua a tag `<script src=...jspdf...>` pelo conteúdo de `node_modules/jspdf/dist/jspdf.umd.min.js`.
 
 ## Estrutura
@@ -40,7 +42,8 @@ src/sus-core.js     Instrumento, validação, cálculo, interpretação, CSV, mo
 src/sus-pdf.js      Renderização do relatório em PDF (A4) a partir do modelo
 src/app.js          Interface: formulário, resultado, diálogos, salvamento automático, downloads
 src/template.html   Estrutura e estilos
-build.js            Junta tudo em dist/index.html
+build.js            Junta tudo em dist/index.html (documento completo)
+.github/workflows/  Publicação automática no GitHub Pages
 tests/core.test.js  Testes unitários (cálculo, validação, CSV, armazenamento)
 tests/flow.test.js  Testes do fluxo completo na página real (jsdom), incluindo PDF e CSV gerados
 ```

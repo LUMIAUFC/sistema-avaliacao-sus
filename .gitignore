@@ -22,3 +22,6 @@ Thumbs.db
 .env.*
 *.pem
 *.key
+
+# Versão para publicação como artifact no claude.ai (gerada com node build.js --artifact)
+artifact/
