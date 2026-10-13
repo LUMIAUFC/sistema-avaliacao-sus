@@ -21,7 +21,23 @@
   function renderPDF(JsPDF, report) {
     var doc = new JsPDF({ unit: 'mm', format: 'a4' });
     var W = 210, M = 18, CW = W - 2 * M, y = M;
-    var ink = [27, 36, 48], muted = [92, 102, 115], rule = [205, 211, 218], accent = [31, 86, 104];
+    // Identidade LUMIA: violeta profundo para títulos; violeta, amarelo e ciano do logotipo no fio de marca.
+    var ink = [30, 24, 48], muted = [93, 86, 114], rule = [228, 223, 238], accent = [106, 63, 192];
+    var brand = [[160, 108, 224], [248, 192, 60], [28, 194, 218]];
+    function brandLine(x, yy, w, h, frac) {
+      var lim = frac === undefined ? 1 : frac;
+      // degradê aproximado em faixas finas: violeta -> amarelo -> ciano
+      var steps = 60;
+      for (var i = 0; i < steps; i++) {
+        if ((i + 1) / steps > lim + 1e-9) { var rest = w * lim - w * i / steps; if (rest > 0) { /* fração final */ } else break; }
+        var t = i / (steps - 1), a, b, u;
+        if (t < 0.55) { a = brand[0]; b = brand[1]; u = t / 0.55; } else { a = brand[1]; b = brand[2]; u = (t - 0.55) / 0.45; }
+        doc.setFillColor(Math.round(a[0] + (b[0] - a[0]) * u), Math.round(a[1] + (b[1] - a[1]) * u), Math.round(a[2] + (b[2] - a[2]) * u));
+        var seg = Math.min(w / steps, w * lim - w * i / steps);
+        if (seg <= 0) break;
+        doc.rect(x + w * i / steps, yy, seg + (seg < w / steps ? 0 : 0.05), h, 'F');
+      }
+    }
 
     doc.setProperties({ title: safe(report.title), subject: 'Avaliação SUS ' + report.identification[0][1], creator: 'Sistema de Avaliação SUS ' + report.appVersion });
 
@@ -48,7 +64,14 @@
       y += 2;
     }
 
-    // Cabeçalho
+    // Cabeçalho com assinatura LUMIA
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor.apply(doc, accent);
+    doc.text('LUMIA', M, y);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor.apply(doc, muted);
+    doc.text(safe('Laboratório de Usabilidade, Mídias e Inteligência Artificial · UFC'), M + 15, y);
+    y += 2.5;
+    brandLine(M, y, CW, 0.9);
+    y += 9;
     text(report.title, M, { size: 16, bold: true });
     y += 1;
     text(report.subtitle, M, { size: 10, color: muted });
@@ -83,7 +106,7 @@
     // escala 0–100
     var bx = M + 60, bw = CW - 60, by = y + 3;
     doc.setFillColor(232, 236, 240); doc.rect(bx, by, bw, 4, 'F');
-    doc.setFillColor.apply(doc, accent); doc.rect(bx, by, bw * report.score / 100, 4, 'F');
+    if (report.score > 0) brandLine(bx, by, bw, 4, report.score / 100);
     var rx = bx + bw * report.interpretation.benchmark / 100;
     doc.setDrawColor.apply(doc, ink); doc.setLineWidth(0.5); doc.line(rx, by - 1.5, rx, by + 5.5);
     doc.setFontSize(7.5); doc.setTextColor.apply(doc, muted);
@@ -145,7 +168,7 @@
     for (var p = 1; p <= pages; p++) {
       doc.setPage(p);
       doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor.apply(doc, muted);
-      doc.text(safe('Sistema de Avaliação SUS v' + report.appVersion + ' · ' + report.identification[0][1]), M, 297 - 10);
+      doc.text(safe('LUMIA · Sistema de Avaliação SUS v' + report.appVersion + ' · ' + report.identification[0][1]), M, 297 - 10);
       doc.text('Página ' + p + ' de ' + pages, W - M, 297 - 10, { align: 'right' });
     }
     return doc;

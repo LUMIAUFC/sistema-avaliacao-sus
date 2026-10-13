@@ -359,12 +359,12 @@
     state.view = 'form';
     var ev = state.ev;
     $app.innerHTML =
-      '<header class="masthead">' +
+      '<div class="masthead">' +
         '<p class="eyebrow">Avaliação de usabilidade</p>' +
         '<h1>Escala de Usabilidade do Sistema (SUS)</h1>' +
         '<p class="lede">Questionário de usabilidade percebida com 10 afirmações. Preencha a identificação e responda a todos os itens para calcular a pontuação.</p>' +
         saveBarHtml() +
-      '</header>' +
+      '</div>' +
       progressHtml() +
       '<main>' +
       recoveredHtml() +
@@ -471,11 +471,11 @@
         '</td><td class="muted rule">' + esc(it.rule) + '</td><td class="n">' + it.contribution + '</td></tr>';
     }).join('');
     $app.innerHTML =
-      '<header class="result-head">' +
+      '<div class="result-head">' +
         '<p class="eyebrow">Resultado da avaliação · concluída</p>' +
         '<h1 id="result-title" tabindex="-1">' + esc(ev.system.trim()) + '</h1>' +
         saveBarHtml() +
-      '</header>' +
+      '</div>' +
       '<main>' +
         '<dl class="meta">' + rep.identification.map(function (p) {
           return '<div><dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd></div>';
@@ -484,7 +484,7 @@
           '<h2 id="h-score" class="sr-only">Pontuação SUS</h2>' +
           '<p class="score"><span class="value">' + esc(rep.scoreText) + '</span><span class="of">/ 100 · pontuação SUS</span></p>' +
           '<div class="scale" role="img" aria-label="Escala de 0 a 100: pontuação ' + esc(rep.scoreText) + ', média de referência 68">' +
-            '<div class="track"><div class="fill" style="width:' + pct + '%"></div></div>' +
+            '<div class="track"><div class="fill" style="--pct:' + pct + '%"></div></div>' +
             '<div class="ref" style="left:' + ref + '%"></div>' +
             '<span class="tick start" style="left:0">0</span>' +
             '<span class="tick" style="left:50%">50</span>' +
