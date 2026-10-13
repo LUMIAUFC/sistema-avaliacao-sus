@@ -1,0 +1,24 @@
+# Dependências (instaladas com npm install)
+node_modules/
+
+# Arquivos gerados pelos testes
+test-output/
+
+# Logs e temporários
+npm-debug.log*
+*.log
+*.tmp
+.cache/
+coverage/
+
+# Sistema operacional e editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Variáveis de ambiente e credenciais
+.env
+.env.*
+*.pem
+*.key

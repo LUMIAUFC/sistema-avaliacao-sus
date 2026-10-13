@@ -1,0 +1,1275 @@
+<title>Avaliação SUS</title>
+<meta name="description" content="Aplicação, cálculo e exportação da Escala de Usabilidade do Sistema (SUS).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Literata:opsz,wght@7..72,500;7..72,600&display=swap">
+<style>
+/* Layout: coluna única de leitura (máx. 46rem), barra de progresso fixa no topo, resultado em página própria. */
+:root {
+  --paper: #F3F5F3;
+  --surface: #FFFFFF;
+  --ink: #17212A;
+  --muted: #56636C;
+  --line: #D3D9D6;
+  --accent: #1D5466;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E1ECEE;
+  --danger: #9E2F26;
+  --danger-soft: #FBEAE7;
+  --ok: #2C6A3B;
+  --focus: #C2410C;
+  --font-display: "Literata", Georgia, "Times New Roman", serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121A1F; --surface: #1A242B; --ink: #E6ECEA; --muted: #9CAAB1; --line: #2F3D45;
+    --accent: #7FC0CF; --accent-ink: #0E1A1F; --accent-soft: #1F3640; --danger: #F08A7E; --danger-soft: #3A2220;
+    --ok: #86C796; --focus: #FDBA74; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121A1F; --surface: #1A242B; --ink: #E6ECEA; --muted: #9CAAB1; --line: #2F3D45;
+  --accent: #7FC0CF; --accent-ink: #0E1A1F; --accent-soft: #1F3640; --danger: #F08A7E; --danger-soft: #3A2220;
+  --ok: #86C796; --focus: #FDBA74; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 1rem; line-height: 1.55; }
+.wrap { max-width: 46rem; margin: 0 auto; padding-inline: 16px; padding-block: 0 4rem; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.2; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.6rem, 4.5vw, 2.15rem); }
+h2 { font-size: 1.3rem; }
+p { margin: 0; }
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.eyebrow { font-family: var(--font-data); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.small { font-size: .875rem; }
+
+/* Cabeçalho */
+.masthead { padding-block: 2rem 1.25rem; display: grid; gap: .5rem; }
+.masthead .lede { color: var(--muted); max-width: 38rem; }
+.savebar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; font-size: .875rem; color: var(--muted); }
+.savebar .dot { width: .55rem; height: .55rem; border-radius: 50%; background: var(--ok); flex: none; }
+.savebar[data-state="erro"] { color: var(--danger); font-weight: 500; }
+.savebar[data-state="erro"] .dot { background: var(--danger); border-radius: 0; }
+
+/* Progresso fixo */
+.progress { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-bottom: 1px solid var(--line); padding-block: .6rem; margin-bottom: 1.5rem; }
+.progress-inner { display: flex; align-items: center; gap: .9rem; }
+.progress-text { font-size: .875rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.progress-text strong { font-family: var(--font-data); font-weight: 500; }
+.meter { flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; min-width: 0; }
+.meter > span { display: block; height: 100%; background: var(--accent); width: 0; transition: width .2s ease; }
+
+/* Avisos */
+.notice { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: .9rem 1rem; display: grid; gap: .6rem; margin-bottom: 1.5rem; }
+.notice.info { border-left: 4px solid var(--accent); }
+.notice.error { border-left: 4px solid var(--danger); background: var(--danger-soft); }
+.notice h2 { font-family: var(--font-body); font-size: 1rem; font-weight: 600; }
+.notice ul { margin: 0; padding-left: 1.2rem; }
+
+/* Seções do formulário */
+section.block { display: grid; gap: 1rem; margin-bottom: 2.25rem; }
+.block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: .5rem; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem; }
+.field { display: grid; gap: .3rem; min-width: 0; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-weight: 500; font-size: .9375rem; }
+.field .hint { font-size: .8125rem; color: var(--muted); }
+.field input, .field textarea { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: .55rem .7rem; width: 100%; }
+.field textarea { min-height: 5rem; resize: vertical; }
+.field input[readonly] { background: transparent; border-style: dashed; font-family: var(--font-data); font-size: .9rem; }
+.field .err { color: var(--danger); font-size: .875rem; font-weight: 500; }
+.field.has-error input { border-color: var(--danger); border-width: 2px; }
+
+/* Itens do SUS */
+.instructions { color: var(--muted); max-width: 40rem; }
+ol.items { list-style: none; margin: 0; padding: 0; display: grid; gap: .9rem; }
+fieldset.item { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); margin: 0; padding: 1rem 1rem 1.1rem; display: grid; gap: .85rem; min-width: 0; }
+fieldset.item.missing { border-color: var(--danger); border-width: 2px; }
+fieldset.item legend { float: left; width: 100%; padding: 0; display: grid; grid-template-columns: 2rem 1fr; gap: .25rem; font-size: 1.0625rem; font-weight: 500; }
+fieldset.item legend + * { clear: both; }
+.num { font-family: var(--font-data); color: var(--muted); font-weight: 400; }
+.item-err { color: var(--danger); font-size: .875rem; font-weight: 500; display: flex; gap: .4rem; align-items: center; }
+.likert { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .4rem; }
+.likert label { position: relative; display: grid; justify-items: center; align-content: start; gap: .25rem; text-align: center; padding: .55rem .3rem .6rem; border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; font-size: .8125rem; line-height: 1.25; color: var(--muted); min-height: 4.4rem; }
+.likert input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.likert .v { font-family: var(--font-data); font-size: 1.05rem; color: var(--ink); width: 1.9rem; height: 1.9rem; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--line); }
+.likert label:hover { border-color: var(--accent); }
+.likert input:focus-visible + .v { outline: 3px solid var(--focus); outline-offset: 2px; }
+.likert input:checked + .v { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.likert label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); font-weight: 500; }
+.likert .chk { display: none; }
+.likert input:checked ~ .chk { display: inline; }
+@media (max-width: 34rem) {
+  .likert { grid-template-columns: 1fr; }
+  .likert label { grid-template-columns: 1.9rem 1fr auto; justify-items: start; align-items: center; text-align: left; min-height: 0; padding: .45rem .6rem; gap: .65rem; font-size: .875rem; }
+}
+
+/* Botões */
+.actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+button { font: inherit; cursor: pointer; border-radius: var(--r); padding: .6rem 1rem; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 500; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.primary:hover { filter: brightness(1.08); }
+button.danger { color: var(--danger); }
+button.danger.solid { background: var(--danger); border-color: var(--danger); color: var(--surface); }
+button.link { border: none; background: none; padding: .3rem 0; color: var(--accent); text-decoration: underline; }
+button[aria-busy="true"] { opacity: .7; cursor: progress; }
+button:disabled { opacity: .55; cursor: not-allowed; }
+.toolbar { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding-top: 1.25rem; }
+
+details.privacy { border-top: 1px solid var(--line); padding-top: 1rem; margin-top: 2.5rem; font-size: .9rem; color: var(--muted); }
+details.privacy summary { cursor: pointer; color: var(--ink); font-weight: 500; }
+details.privacy ul { padding-left: 1.2rem; display: grid; gap: .35rem; margin: .75rem 0 0; }
+
+/* Resultado */
+.result-head { padding-block: 2rem 1rem; display: grid; gap: .4rem; }
+.meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem 1.5rem; margin: 0; padding: 1rem 0; border-block: 1px solid var(--line); }
+.meta div { min-width: 0; }
+.meta dt { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-family: var(--font-data); }
+.meta dd { margin: .15rem 0 0; overflow-wrap: anywhere; }
+.score-panel { display: grid; gap: 1.1rem; padding-block: 1.75rem; }
+.score { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+.score .value { font-family: var(--font-display); font-size: clamp(3.5rem, 13vw, 5.5rem); line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
+.score .of { font-family: var(--font-data); color: var(--muted); font-size: 1.1rem; }
+.scale { position: relative; padding-bottom: 2.4rem; }
+.scale .track { height: 12px; background: var(--line); border-radius: 6px; position: relative; overflow: hidden; }
+.scale .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+.scale .ref { position: absolute; top: -6px; height: 24px; width: 0; border-left: 2px dashed var(--ink); }
+.scale .tick { position: absolute; top: 18px; font-family: var(--font-data); font-size: .75rem; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
+.scale .tick.start { transform: none; }
+.scale .tick.end { transform: translateX(-100%); }
+.scale .tick.reflabel { top: 34px; color: var(--ink); }
+.interp { display: grid; gap: .5rem; max-width: 40rem; }
+.caveats { margin: 0; padding-left: 1.2rem; color: var(--muted); font-size: .9rem; display: grid; gap: .25rem; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; min-width: 34rem; }
+caption { text-align: left; padding: .75rem 1rem; color: var(--muted); font-size: .85rem; caption-side: bottom; border-top: 1px solid var(--line); }
+th, td { padding: .6rem .75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+thead th { font-family: var(--font-data); font-weight: 500; font-size: .75rem; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+td.rule { white-space: nowrap; }
+#error-summary, fieldset.item, .field { scroll-margin-top: 4.5rem; }
+td.n, th.n { text-align: right; font-family: var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tfoot td { font-weight: 600; border-bottom: none; }
+.formula { font-family: var(--font-data); font-size: .9rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: .8rem 1rem; overflow-x: auto; }
+.refs { margin: 0; padding-left: 1.2rem; display: grid; gap: .5rem; font-size: .9rem; }
+.refs li { overflow-wrap: anywhere; }
+
+/* Diálogo */
+.overlay { position: fixed; inset: 0; background: rgba(10, 16, 20, .55); display: grid; place-items: center; padding: 16px; z-index: 50; }
+.dialog { background: var(--surface); color: var(--ink); border-radius: 8px; max-width: 30rem; width: 100%; padding: 1.4rem; display: grid; gap: 1rem; box-shadow: 0 18px 50px rgba(0,0,0,.3); }
+.dialog h2 { font-size: 1.2rem; }
+.toast { position: fixed; left: 50%; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: .65rem 1rem; border-radius: var(--r); font-size: .9rem; z-index: 60; max-width: calc(100% - 32px); }
+.toast[data-kind="erro"] { background: var(--danger); color: var(--surface); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media print { .progress, .toolbar, .actions, details.privacy, .savebar { display: none !important; } }
+</style>
+
+<div id="app" class="wrap" aria-live="off">
+  <noscript><p>Esta aplicação precisa de JavaScript ativado no navegador.</p></noscript>
+</div>
+<div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+<div id="dialog-root"></div>
+<div id="toast-root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>/*
+ * sus-core.js — Núcleo do Sistema de Avaliação SUS
+ * Funções puras: instrumento, validação, cálculo, interpretação, CSV,
+ * modelo do relatório e persistência local. Sem dependência de DOM.
+ * Funciona no navegador (window.SUSCore) e no Node (module.exports).
+ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.SUSCore = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var APP_VERSION = '1.0.0';
+  var ALGORITHM_VERSION = 'SUS-Brooke1996-v1';
+  var STORAGE_KEY = 'sus-avaliacao:atual:v1';
+
+  /* Itens: versão brasileira publicada por Lourenço, Carmona e Lopes (2022),
+     Tabela 1, transcrita literalmente. Polaridade: ímpares positivos, pares negativos. */
+  var ITEMS = [
+    'Eu acho que gostaria de usar esse sistema frequentemente.',
+    'Eu achei esse sistema desnecessariamente complexo.',
+    'Eu achei esse sistema fácil de usar.',
+    'Eu achei que precisaria de ajuda de uma pessoa técnica para ser capaz de usar esse sistema.',
+    'Eu achei que as várias funções desse sistema foram bem integradas.',
+    'Eu acho que o sistema apresenta muita inconsistência.',
+    'Eu imagino que a maioria das pessoas pode aprender a usar esse sistema rapidamente.',
+    'Eu achei esse sistema muito pesado para usar.',
+    'Eu me senti muito seguro usando o sistema.',
+    'Eu precisei aprender muitas coisas antes que pudesse utilizar esse sistema.'
+  ];
+
+  var OPTIONS = [
+    { value: 1, label: 'Discordo totalmente' },
+    { value: 2, label: 'Discordo' },
+    { value: 3, label: 'Nem concordo nem discordo' },
+    { value: 4, label: 'Concordo' },
+    { value: 5, label: 'Concordo totalmente' }
+  ];
+
+  var REFERENCES = {
+    instrument: 'Brooke, J. (1996). SUS: A "quick and dirty" usability scale. In P. W. Jordan, B. Thomas, B. A. Weerdmeester & I. L. McClelland (Eds.), Usability Evaluation in Industry (pp. 189–194). London: Taylor & Francis.',
+    translation: 'Lourenço, D. F., Carmona, E. V. & Lopes, M. H. B. M. (2022). Tradução e adaptação transcultural da System Usability Scale para o português do Brasil. Aquichan, 22(2), e2228. https://doi.org/10.5294/aqui.2022.22.2.8',
+    benchmark: 'Sauro, J. (2011). A Practical Guide to the System Usability Scale: Background, Benchmarks & Best Practices. Denver, CO: Measuring Usability LLC.'
+  };
+
+  var BENCHMARK_MEAN = 68;
+
+  function isPolarityPositive(index) { return index % 2 === 0; } // índice 0 = item 1 (ímpar)
+
+  function isValidResponse(v) {
+    return typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 5;
+  }
+
+  /** Verifica se as respostas estão completas e no intervalo 1..5. */
+  function validateResponses(responses) {
+    var missing = [], invalid = [];
+    if (!Array.isArray(responses) || responses.length !== 10) {
+      return { valid: false, missing: [], invalid: [], structural: true };
+    }
+    responses.forEach(function (v, i) {
+      if (v === null || v === undefined || v === '') missing.push(i + 1);
+      else if (!isValidResponse(v)) invalid.push(i + 1);
+    });
+    return { valid: missing.length === 0 && invalid.length === 0, missing: missing, invalid: invalid, structural: false };
+  }
+
+  function contributionFor(index, response) {
+    return isPolarityPositive(index) ? response - 1 : 5 - response;
+  }
+
+  /**
+   * Calcula a pontuação SUS. Lança erro se houver respostas ausentes ou inválidas.
+   * Retorna { score, sum, contributions }. Nenhum arredondamento é aplicado:
+   * soma inteira × 2,5 é sempre múltiplo exato de 2,5.
+   */
+  function calculateSUS(responses) {
+    var check = validateResponses(responses);
+    if (check.structural) throw new Error('O questionário deve conter exatamente 10 respostas.');
+    if (check.missing.length) throw new Error('Itens sem resposta: ' + check.missing.join(', ') + '.');
+    if (check.invalid.length) throw new Error('Respostas fora do intervalo de 1 a 5 nos itens: ' + check.invalid.join(', ') + '.');
+    var contributions = responses.map(function (r, i) { return contributionFor(i, r); });
+    var sum = contributions.reduce(function (a, b) { return a + b; }, 0);
+    return { score: sum * 2.5, sum: sum, contributions: contributions };
+  }
+
+  /** Interpretação comparativa, sem rótulos de qualidade. */
+  function interpret(score) {
+    var diff = score - BENCHMARK_MEAN;
+    var position;
+    if (diff > 0) position = 'acima';
+    else if (diff < 0) position = 'abaixo';
+    else position = 'igual';
+    var text;
+    if (position === 'igual') {
+      text = 'A pontuação coincide com a média de referência de 68 pontos.';
+    } else {
+      text = 'A pontuação está ' + formatNumber(Math.abs(diff)) + ' pontos ' + position + ' da média de referência de 68 pontos.';
+    }
+    text += ' Essa média foi obtida por Sauro (2011) a partir de cerca de 500 estudos e serve apenas como comparação. Ela não é um limite de aprovação, e uma única resposta individual não permite generalizar a usabilidade percebida do sistema.';
+    return { benchmark: BENCHMARK_MEAN, difference: diff, position: position, text: text, source: REFERENCES.benchmark };
+  }
+
+  function formatNumber(n) {
+    // pt-BR, sem arredondar: valores SUS são múltiplos de 2,5 (no máx. 1 casa decimal).
+    return String(n).replace('.', ',');
+  }
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
+  }
+
+  function formatDateTime(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return formatDate(iso) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function generateCode(now, rand) {
+    var d = now || new Date();
+    var r = rand || Math.random;
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var suffix = '';
+    for (var i = 0; i < 4; i++) suffix += chars[Math.floor(r() * chars.length)];
+    return 'SUS-' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + suffix;
+  }
+
+  function createEvaluation(now, rand) {
+    var d = now || new Date();
+    return {
+      schema: 1,
+      code: generateCode(d, rand),
+      createdAt: d.toISOString(),
+      updatedAt: d.toISOString(),
+      system: '',
+      participant: '',
+      systemVersion: '',
+      notes: '',
+      responses: [null, null, null, null, null, null, null, null, null, null],
+      status: 'em_andamento',
+      submittedAt: null,
+      result: null,
+      exportedAt: null
+    };
+  }
+
+  function sanitizeText(value, max) {
+    if (typeof value !== 'string') return '';
+    // remove caracteres de controle, mantém quebras de linha nas observações
+    var s = value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+    return s.slice(0, max);
+  }
+
+  var LIMITS = { system: 120, participant: 40, systemVersion: 40, notes: 2000 };
+
+  function validateIdentification(ev) {
+    var errors = {};
+    if (!ev.system || !ev.system.trim()) errors.system = 'Informe o nome ou código do sistema avaliado.';
+    if (ev.participant && /[^A-Za-z0-9_\-.]/.test(ev.participant.trim())) {
+      errors.participant = 'Use apenas letras sem acento, números, hífen, ponto ou sublinhado (ex.: P001).';
+    }
+    return errors;
+  }
+
+  /** Normaliza um objeto lido do armazenamento. Retorna null se for irrecuperável. */
+  function normalizeEvaluation(raw) {
+    if (!raw || typeof raw !== 'object' || raw.schema !== 1) return null;
+    if (!Array.isArray(raw.responses) || raw.responses.length !== 10) return null;
+    var ev = createEvaluation(new Date(raw.createdAt || Date.now()));
+    ev.code = typeof raw.code === 'string' && /^SUS-\d{8}-[A-Z0-9]{4}$/.test(raw.code) ? raw.code : ev.code;
+    ev.createdAt = raw.createdAt || ev.createdAt;
+    ev.updatedAt = raw.updatedAt || ev.updatedAt;
+    ev.system = sanitizeText(raw.system, LIMITS.system);
+    ev.participant = sanitizeText(raw.participant, LIMITS.participant);
+    ev.systemVersion = sanitizeText(raw.systemVersion, LIMITS.systemVersion);
+    ev.notes = sanitizeText(raw.notes, LIMITS.notes);
+    ev.responses = raw.responses.map(function (v) { return isValidResponse(v) ? v : null; });
+    ev.exportedAt = raw.exportedAt || null;
+    if (raw.status === 'concluida' && validateResponses(ev.responses).valid) {
+      ev.status = 'concluida';
+      ev.submittedAt = raw.submittedAt || ev.updatedAt;
+      ev.result = calculateSUS(ev.responses); // recalcula: nunca confia no valor salvo
+    }
+    return ev;
+  }
+
+  function answeredCount(responses) {
+    return responses.filter(function (v) { return isValidResponse(v); }).length;
+  }
+
+  /* ---------- CSV ---------- */
+
+  var CSV_SEPARATOR = ';';
+  var CSV_HEADERS = ['codigo_avaliacao', 'sistema_avaliado', 'codigo_participante', 'data_avaliacao',
+    'versao_sistema_avaliado', 'situacao',
+    'Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10',
+    'pontuacao_sus', 'versao_algoritmo', 'versao_aplicacao'];
+
+  /** Escapa um campo para CSV e neutraliza injeção de fórmulas em planilhas. */
+  function csvField(value) {
+    var s = value === null || value === undefined ? '' : String(value);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    if (/[";\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  /** Gera o CSV (UTF-8 com BOM, separador ";", decimal com vírgula — padrão do Excel em pt-BR). */
+  function buildCSV(ev) {
+    var complete = validateResponses(ev.responses).valid;
+    var score = '';
+    if (ev.status === 'concluida' && complete) score = formatNumber(calculateSUS(ev.responses).score);
+    var row = [ev.code, ev.system.trim(), ev.participant.trim(), formatDate(ev.submittedAt || ev.createdAt),
+      ev.systemVersion.trim(), ev.status === 'concluida' ? 'concluida' : 'em andamento']
+      .concat(ev.responses.map(function (v) { return v === null ? '' : v; }))
+      .concat([score, ALGORITHM_VERSION, APP_VERSION]);
+    return '﻿' + CSV_HEADERS.join(CSV_SEPARATOR) + '\r\n' + row.map(csvField).join(CSV_SEPARATOR) + '\r\n';
+  }
+
+  /** Lê um CSV gerado por buildCSV (usado nos testes de integridade). */
+  function parseCSV(text) {
+    var t = text.replace(/^﻿/, '');
+    var rows = [], row = [], field = '', inQ = false;
+    for (var i = 0; i < t.length; i++) {
+      var c = t[i];
+      if (inQ) {
+        if (c === '"' && t[i + 1] === '"') { field += '"'; i++; }
+        else if (c === '"') inQ = false;
+        else field += c;
+      } else if (c === '"') inQ = true;
+      else if (c === CSV_SEPARATOR) { row.push(field); field = ''; }
+      else if (c === '\r') { /* ignora */ }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else field += c;
+    }
+    if (field || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  /* ---------- Relatório ---------- */
+
+  /** Modelo de dados do relatório, compartilhado pela tela e pelo PDF. */
+  function buildReport(ev) {
+    var calc = calculateSUS(ev.responses);
+    return {
+      title: 'Relatório de Avaliação de Usabilidade — SUS',
+      subtitle: 'Escala de Usabilidade do Sistema (System Usability Scale)',
+      identification: [
+        ['Código da avaliação', ev.code],
+        ['Sistema avaliado', ev.system.trim()],
+        ['Versão do sistema avaliado', ev.systemVersion.trim() || 'Não informada'],
+        ['Código do participante', ev.participant.trim() || 'Não informado'],
+        ['Data da avaliação', formatDateTime(ev.submittedAt || ev.createdAt)]
+      ],
+      notes: ev.notes.trim(),
+      score: calc.score,
+      scoreText: formatNumber(calc.score),
+      sum: calc.sum,
+      items: ITEMS.map(function (text, i) {
+        return {
+          number: i + 1,
+          text: text,
+          polarity: isPolarityPositive(i) ? 'positivo' : 'negativo',
+          response: ev.responses[i],
+          responseLabel: OPTIONS[ev.responses[i] - 1].label,
+          contribution: calc.contributions[i],
+          rule: isPolarityPositive(i) ? 'resposta − 1' : '5 − resposta'
+        };
+      }),
+      formula: 'SUS = 2,5 × [Σ ímpares (resposta − 1) + Σ pares (5 − resposta)]',
+      formulaPlain: 'SUS = 2,5 × [soma dos itens ímpares (resposta − 1) + soma dos itens pares (5 − resposta)]',
+      calculation: 'Soma das contribuições = ' + calc.sum + '; ' + calc.sum + ' × 2,5 = ' + formatNumber(calc.score),
+      interpretation: interpret(calc.score),
+      caveats: [
+        'A pontuação SUS varia de 0 a 100, mas não é uma porcentagem.',
+        'A contribuição de cada item (0 a 4) serve apenas para transparência do cálculo; itens isolados não são medidas validadas de usabilidade.'
+      ],
+      references: [REFERENCES.instrument, REFERENCES.translation, REFERENCES.benchmark],
+      algorithmVersion: ALGORITHM_VERSION,
+      appVersion: APP_VERSION
+    };
+  }
+
+  /* ---------- Persistência local ---------- */
+
+  /**
+   * Envolve um objeto com interface Storage (localStorage ou simulação).
+   * Nunca lança: retorna { ok, error } para que a interface informe falhas.
+   */
+  function createStore(storage, key) {
+    var k = key || STORAGE_KEY;
+    return {
+      key: k,
+      available: function () {
+        try {
+          if (!storage) return false;
+          var probe = k + ':teste';
+          storage.setItem(probe, '1');
+          storage.removeItem(probe);
+          return true;
+        } catch (e) { return false; }
+      },
+      save: function (ev) {
+        try {
+          if (!storage) throw new Error('Armazenamento indisponível');
+          var payload = JSON.stringify(ev);
+          storage.setItem(k, payload);
+          if (storage.getItem(k) !== payload) throw new Error('Verificação de gravação falhou');
+          return { ok: true };
+        } catch (e) { return { ok: false, error: e && e.name === 'QuotaExceededError' ? 'cota' : 'indisponivel' }; }
+      },
+      load: function () {
+        try {
+          if (!storage) return { ok: false, error: 'indisponivel', evaluation: null };
+          var raw = storage.getItem(k);
+          if (!raw) return { ok: true, evaluation: null };
+          var ev = normalizeEvaluation(JSON.parse(raw));
+          if (!ev) return { ok: false, error: 'corrompido', evaluation: null };
+          return { ok: true, evaluation: ev };
+        } catch (e) { return { ok: false, error: e instanceof SyntaxError ? 'corrompido' : 'indisponivel', evaluation: null }; }
+      },
+      clear: function () {
+        try { if (storage) storage.removeItem(k); return { ok: true }; }
+        catch (e) { return { ok: false, error: 'indisponivel' }; }
+      }
+    };
+  }
+
+  function exportFilename(ev, ext) {
+    var base = (ev.system || 'sistema').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase().slice(0, 40) || 'sistema';
+    var part = ev.participant ? '_' + ev.participant.replace(/[^A-Za-z0-9_\-.]/g, '') : '';
+    return 'sus_' + base + part + '_' + ev.code + '.' + ext;
+  }
+
+  return {
+    APP_VERSION: APP_VERSION,
+    ALGORITHM_VERSION: ALGORITHM_VERSION,
+    STORAGE_KEY: STORAGE_KEY,
+    ITEMS: ITEMS,
+    OPTIONS: OPTIONS,
+    REFERENCES: REFERENCES,
+    BENCHMARK_MEAN: BENCHMARK_MEAN,
+    LIMITS: LIMITS,
+    isValidResponse: isValidResponse,
+    validateResponses: validateResponses,
+    calculateSUS: calculateSUS,
+    interpret: interpret,
+    formatNumber: formatNumber,
+    formatDate: formatDate,
+    formatDateTime: formatDateTime,
+    generateCode: generateCode,
+    createEvaluation: createEvaluation,
+    sanitizeText: sanitizeText,
+    validateIdentification: validateIdentification,
+    normalizeEvaluation: normalizeEvaluation,
+    answeredCount: answeredCount,
+    csvField: csvField,
+    buildCSV: buildCSV,
+    parseCSV: parseCSV,
+    CSV_HEADERS: CSV_HEADERS,
+    buildReport: buildReport,
+    createStore: createStore,
+    exportFilename: exportFilename
+  };
+});
+</script>
+<script>/*
+ * sus-pdf.js — Gera o relatório em PDF (A4) a partir do modelo buildReport().
+ * Recebe o construtor jsPDF por parâmetro para funcionar no navegador e no Node.
+ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.SUSPdf = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  // As fontes padrão do PDF usam WinAnsi: acentos do português são suportados,
+  // mas alguns símbolos matemáticos não. Converte-os para equivalentes seguros.
+  function safe(text) {
+    return String(text)
+      .replace(/−/g, '-')
+      .replace(/Σ/g, 'soma')
+      .replace(/[^\u0000-ÿ–—‘’“”•…]/g, '?');
+  }
+
+  function renderPDF(JsPDF, report) {
+    var doc = new JsPDF({ unit: 'mm', format: 'a4' });
+    var W = 210, M = 18, CW = W - 2 * M, y = M;
+    var ink = [27, 36, 48], muted = [92, 102, 115], rule = [205, 211, 218], accent = [31, 86, 104];
+
+    doc.setProperties({ title: safe(report.title), subject: 'Avaliação SUS ' + report.identification[0][1], creator: 'Sistema de Avaliação SUS ' + report.appVersion });
+
+    function ensure(h) {
+      if (y + h > 297 - M - 8) { doc.addPage(); y = M; }
+    }
+    function text(str, x, opts) {
+      opts = opts || {};
+      doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
+      doc.setFontSize(opts.size || 10);
+      doc.setTextColor.apply(doc, opts.color || ink);
+      var lines = doc.splitTextToSize(safe(str), opts.width || CW);
+      var lh = (opts.size || 10) * 0.42;
+      ensure(lines.length * lh);
+      doc.text(lines, x, y);
+      y += lines.length * lh;
+      return lines.length;
+    }
+    function heading(str) {
+      y += 4; ensure(12);
+      doc.setDrawColor.apply(doc, rule); doc.setLineWidth(0.3); doc.line(M, y, W - M, y);
+      y += 6;
+      text(str.toUpperCase(), M, { size: 9, bold: true, color: accent });
+      y += 2;
+    }
+
+    // Cabeçalho
+    text(report.title, M, { size: 16, bold: true });
+    y += 1;
+    text(report.subtitle, M, { size: 10, color: muted });
+    y += 3;
+
+    // Identificação
+    heading('Identificação da avaliação');
+    report.identification.forEach(function (pair) {
+      var before = y;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor.apply(doc, muted);
+      ensure(5);
+      doc.text(safe(pair[0]), M, y);
+      y = before;
+      text(pair[1], M + 55, { size: 9.5, width: CW - 55 });
+      y += 1.2;
+    });
+    if (report.notes) {
+      y += 1;
+      text('Observações do avaliador', M, { size: 9.5, bold: true, color: muted });
+      y += 0.5;
+      text(report.notes, M, { size: 9.5 });
+    }
+
+    // Pontuação
+    heading('Pontuação SUS');
+    ensure(30);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(30); doc.setTextColor.apply(doc, ink);
+    doc.text(safe(report.scoreText), M, y + 9);
+    var sw = doc.getTextWidth(safe(report.scoreText));
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor.apply(doc, muted);
+    doc.text('/ 100', M + sw + 2, y + 9);
+    // escala 0–100
+    var bx = M + 60, bw = CW - 60, by = y + 3;
+    doc.setFillColor(232, 236, 240); doc.rect(bx, by, bw, 4, 'F');
+    doc.setFillColor.apply(doc, accent); doc.rect(bx, by, bw * report.score / 100, 4, 'F');
+    var rx = bx + bw * report.interpretation.benchmark / 100;
+    doc.setDrawColor.apply(doc, ink); doc.setLineWidth(0.5); doc.line(rx, by - 1.5, rx, by + 5.5);
+    doc.setFontSize(7.5); doc.setTextColor.apply(doc, muted);
+    doc.text('0', bx, by + 9); doc.text('100', bx + bw, by + 9, { align: 'right' });
+    doc.text('média de ref. 68', rx, by + 9, { align: 'center' });
+    y += 17;
+    report.caveats.forEach(function (c) { text('• ' + c, M, { size: 8.5, color: muted }); y += 0.6; });
+
+    // Interpretação
+    heading('Interpretação');
+    text(report.interpretation.text, M, { size: 9.5 });
+    y += 1;
+    text('Fonte da média de referência: ' + report.interpretation.source, M, { size: 8.5, color: muted });
+
+    // Tabela
+    heading('Respostas e contribuições');
+    var cols = [M, M + 9, M + 104, M + 141, M + 160];
+    function tableHeader() {
+      ensure(8);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor.apply(doc, muted);
+      doc.text('Item', cols[0], y); doc.text('Afirmação', cols[1], y); doc.text('Resposta', cols[2], y);
+      doc.text('Regra', cols[3], y); doc.text('Contrib.', W - M, y, { align: 'right' });
+      y += 2; doc.setDrawColor.apply(doc, rule); doc.line(M, y, W - M, y); y += 4;
+    }
+    tableHeader();
+    report.items.forEach(function (it) {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+      var stmt = doc.splitTextToSize(safe(it.text), cols[2] - cols[1] - 3);
+      var resp = doc.splitTextToSize(safe(it.response + ' — ' + it.responseLabel), cols[3] - cols[2] - 2);
+      var h = Math.max(stmt.length, resp.length) * 3.6 + 2;
+      if (y + h > 297 - M - 8) { doc.addPage(); y = M; tableHeader(); }
+      doc.setTextColor.apply(doc, ink);
+      doc.text(String(it.number), cols[0], y);
+      doc.text(stmt, cols[1], y);
+      doc.text(resp, cols[2], y);
+      doc.setTextColor.apply(doc, muted);
+      doc.text(safe(it.rule), cols[3], y);
+      doc.setTextColor.apply(doc, ink); doc.setFont('helvetica', 'bold');
+      doc.text(String(it.contribution), W - M, y, { align: 'right' });
+      y += h;
+      doc.setDrawColor(232, 236, 240); doc.line(M, y - 3, W - M, y - 3);
+    });
+
+    // Cálculo
+    heading('Fórmula de cálculo');
+    text(report.formulaPlain, M, { size: 9.5 });
+    y += 0.5;
+    text(report.calculation, M, { size: 9.5, bold: true });
+    y += 0.5;
+    text('Itens ímpares (1, 3, 5, 7, 9) são afirmações positivas; itens pares (2, 4, 6, 8, 10) são negativas. Versão do algoritmo: ' + report.algorithmVersion + '.', M, { size: 8.5, color: muted });
+
+    // Referências
+    heading('Referências');
+    report.references.forEach(function (r) { text(r, M, { size: 8.5 }); y += 1.5; });
+    text('Os itens em português seguem a versão brasileira de Lourenço, Carmona e Lopes (2022), Tabela 1.', M, { size: 8.5, color: muted });
+
+    // Rodapé em todas as páginas
+    var pages = doc.getNumberOfPages();
+    for (var p = 1; p <= pages; p++) {
+      doc.setPage(p);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor.apply(doc, muted);
+      doc.text(safe('Sistema de Avaliação SUS v' + report.appVersion + ' · ' + report.identification[0][1]), M, 297 - 10);
+      doc.text('Página ' + p + ' de ' + pages, W - M, 297 - 10, { align: 'right' });
+    }
+    return doc;
+  }
+
+  return { renderPDF: renderPDF, safe: safe };
+});
+</script>
+<script>/*
+ * app.js — Interface do Sistema de Avaliação SUS.
+ * Depende de SUSCore (sus-core.js), SUSPdf (sus-pdf.js) e, para o PDF, de window.jspdf.
+ */
+(function () {
+  'use strict';
+  var C = window.SUSCore;
+  var $app = document.getElementById('app');
+  var $live = document.getElementById('live');
+  var $dialogRoot = document.getElementById('dialog-root');
+  var $toastRoot = document.getElementById('toast-root');
+
+  var state = {
+    ev: null,
+    store: null,
+    storageOk: true,
+    lastSavedAt: null,
+    recovered: false,
+    loadError: null,
+    attempted: false,
+    errors: null,
+    view: 'form'
+  };
+
+  /* ---------- utilidades ---------- */
+
+  function esc(s) {
+    return String(s === null || s === undefined ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function announce(msg) {
+    $live.textContent = '';
+    setTimeout(function () { $live.textContent = msg; }, 50);
+  }
+  var toastTimer = null;
+  function toast(msg, kind) {
+    $toastRoot.innerHTML = '<div class="toast" role="status" data-kind="' + (kind || 'ok') + '">' + esc(msg) + '</div>';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { $toastRoot.innerHTML = ''; }, 4500);
+  }
+  function hhmm(d) { var x = d || new Date(); return ('0' + x.getHours()).slice(-2) + ':' + ('0' + x.getMinutes()).slice(-2); }
+  function safeLocalStorage() { try { return window.localStorage; } catch (e) { return null; } }
+  function hasData(ev) {
+    return !!(ev.system.trim() || ev.participant.trim() || ev.systemVersion.trim() || ev.notes.trim() || C.answeredCount(ev.responses));
+  }
+  function exportedSinceLastChange(ev) {
+    return !!ev.exportedAt && ev.exportedAt >= ev.updatedAt;
+  }
+
+  /* ---------- persistência ---------- */
+
+  function persist(touch) {
+    if (touch !== false) state.ev.updatedAt = new Date().toISOString();
+    var res = state.store.save(state.ev);
+    state.storageOk = res.ok;
+    if (res.ok) state.lastSavedAt = new Date();
+    renderSaveBar();
+    return res.ok;
+  }
+
+  function saveBarHtml() {
+    if (!state.storageOk) {
+      return '<p class="savebar" data-state="erro" id="savebar" role="alert"><span class="dot" aria-hidden="true"></span>' +
+        'Não foi possível salvar neste navegador (armazenamento bloqueado, cheio ou em navegação privada). ' +
+        'As respostas ficam só nesta aba: exporte o CSV para não perdê-las.</p>';
+    }
+    var when = state.lastSavedAt ? 'Salvo neste navegador às ' + hhmm(state.lastSavedAt) + '.' : 'Salvamento automático neste navegador.';
+    return '<p class="savebar" data-state="ok" id="savebar"><span class="dot" aria-hidden="true"></span>' + when +
+      ' Os dados não são enviados pela internet.</p>';
+  }
+  function renderSaveBar() {
+    var el = document.getElementById('savebar');
+    if (el) el.outerHTML = saveBarHtml();
+  }
+
+  /* ---------- diálogo de confirmação ---------- */
+
+  function confirmDialog(opts) {
+    return new Promise(function (resolve) {
+      var prevFocus = document.activeElement;
+      var btns = opts.buttons.map(function (b, i) {
+        return '<button type="button" data-i="' + i + '" class="' + (b.cls || '') + '">' + esc(b.label) + '</button>';
+      }).join('');
+      $dialogRoot.innerHTML =
+        '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t" aria-describedby="dlg-d">' +
+        '<h2 id="dlg-t">' + esc(opts.title) + '</h2><p id="dlg-d">' + esc(opts.body) + '</p>' +
+        '<div class="actions">' + btns + '</div></div></div>';
+      var dlg = $dialogRoot.querySelector('.dialog');
+      var buttons = Array.prototype.slice.call(dlg.querySelectorAll('button'));
+      function close(val) {
+        $dialogRoot.innerHTML = '';
+        document.removeEventListener('keydown', onKey, true);
+        if (prevFocus && prevFocus.focus && document.body.contains(prevFocus)) prevFocus.focus();
+        resolve(val);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') { e.preventDefault(); close(null); }
+        if (e.key === 'Tab') {
+          var i = buttons.indexOf(document.activeElement);
+          if (e.shiftKey && i <= 0) { e.preventDefault(); buttons[buttons.length - 1].focus(); }
+          else if (!e.shiftKey && i === buttons.length - 1) { e.preventDefault(); buttons[0].focus(); }
+        }
+      }
+      document.addEventListener('keydown', onKey, true);
+      buttons.forEach(function (b) {
+        b.addEventListener('click', function () { close(opts.buttons[+b.dataset.i].value); });
+      });
+      var def = buttons[opts.focus || buttons.length - 1];
+      (def || buttons[0]).focus();
+    });
+  }
+
+  /* ---------- downloads ---------- */
+
+  var dlPromise = null;
+  function getDownloads() {
+    if (!window.claude || typeof window.claude.use !== 'function') return Promise.resolve(null);
+    if (!dlPromise) dlPromise = Promise.resolve(window.claude.use('downloads')).catch(function () { return null; });
+    return dlPromise;
+  }
+  function saveFile(filename, data, mime) {
+    if (typeof window.__SUS_SAVE_HOOK__ === 'function') return Promise.resolve(window.__SUS_SAVE_HOOK__(filename, data, mime));
+    return getDownloads().then(function (dl) {
+      if (dl) {
+        return dl.save({ filename: filename, data: data }).then(function () { return 'ok'; }, function (e) {
+          var code = e && e.code;
+          if (code === 'declined') return 'declined';
+          if (code === 'rate_limited') return 'busy';
+          if (code && code !== 'unavailable' && code !== 'not_granted' && code !== 'capability_disabled' && code !== 'capability_removed') throw e;
+          return fallbackDownload(filename, data, mime);
+        });
+      }
+      return fallbackDownload(filename, data, mime);
+    });
+  }
+  function fallbackDownload(filename, data, mime) {
+    var blob = data instanceof Blob ? data : new Blob([data], { type: mime });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+    return 'ok';
+  }
+  function afterSave(result, what) {
+    if (result === 'ok') {
+      state.ev.exportedAt = new Date().toISOString();
+      persist(false);
+      toast(what + ' pronto para download.');
+      announce(what + ' gerado.');
+      return true;
+    }
+    if (result === 'declined') { toast('Download cancelado.'); return false; }
+    if (result === 'busy') { toast('Já existe um download aguardando confirmação.'); return false; }
+    return false;
+  }
+
+  function exportCSV(btn) {
+    setBusy(btn, true);
+    var csv = C.buildCSV(state.ev);
+    return saveFile(C.exportFilename(state.ev, 'csv'), csv, 'text/csv;charset=utf-8')
+      .then(function (r) { return afterSave(r, 'CSV'); })
+      .catch(function () { toast('Não foi possível gerar o CSV. Tente novamente.', 'erro'); return false; })
+      .then(function (ok) { setBusy(btn, false); return ok; });
+  }
+
+  function exportPDF(btn) {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      toast('O gerador de PDF não carregou (verifique a conexão e recarregue a página). O CSV continua disponível.', 'erro');
+      return Promise.resolve(false);
+    }
+    setBusy(btn, true);
+    return new Promise(function (res) { setTimeout(res, 20); }).then(function () {
+      var report = C.buildReport(state.ev);
+      var doc = window.SUSPdf.renderPDF(window.jspdf.jsPDF, report);
+      var blob = new Blob([doc.output('arraybuffer')], { type: 'application/pdf' });
+      return saveFile(C.exportFilename(state.ev, 'pdf'), blob, 'application/pdf');
+    }).then(function (r) { return afterSave(r, 'PDF'); })
+      .catch(function () { toast('Não foi possível gerar o PDF. Tente novamente.', 'erro'); return false; })
+      .then(function (ok) { setBusy(btn, false); return ok; });
+  }
+
+  function setBusy(btn, on) {
+    if (!btn) return;
+    if (on) { btn.setAttribute('aria-busy', 'true'); btn.dataset.label = btn.textContent; btn.textContent = 'Gerando…'; btn.disabled = true; }
+    else { btn.removeAttribute('aria-busy'); btn.textContent = btn.dataset.label || btn.textContent; btn.disabled = false; }
+  }
+
+  /* ---------- ações de ciclo de vida ---------- */
+
+  function startNew() {
+    state.ev = C.createEvaluation();
+    state.recovered = false;
+    state.loadError = null;
+    state.attempted = false;
+    state.errors = null;
+    persist();
+    renderForm();
+    var f = document.getElementById('f-system');
+    if (f) f.focus();
+    announce('Nova avaliação iniciada.');
+  }
+
+  function requestNew(btn) {
+    if (!hasData(state.ev)) { startNew(); return Promise.resolve(); }
+    var exported = exportedSinceLastChange(state.ev);
+    return confirmDialog({
+      title: 'Iniciar uma nova avaliação?',
+      body: exported
+        ? 'A avaliação atual já foi exportada. Ao continuar, ela será removida deste navegador.'
+        : 'A avaliação atual ainda não foi exportada desde a última alteração. Ao continuar sem exportar, as respostas serão perdidas.',
+      buttons: exported
+        ? [{ label: 'Cancelar', value: null }, { label: 'Iniciar nova avaliação', value: 'discard', cls: 'primary' }]
+        : [{ label: 'Cancelar', value: null }, { label: 'Descartar e iniciar', value: 'discard', cls: 'danger' }, { label: 'Exportar CSV e iniciar', value: 'export', cls: 'primary' }]
+    }).then(function (choice) {
+      if (choice === 'discard') startNew();
+      else if (choice === 'export') return exportCSV(btn).then(function (ok) { if (ok) startNew(); });
+    });
+  }
+
+  function requestClear() {
+    return confirmDialog({
+      title: 'Apagar os dados locais?',
+      body: 'A avaliação salva neste navegador será apagada definitivamente. Dados de outros sites e arquivos já exportados não são afetados.',
+      buttons: [{ label: 'Cancelar', value: null }, { label: 'Apagar dados', value: 'clear', cls: 'danger solid' }],
+      focus: 0
+    }).then(function (choice) {
+      if (choice !== 'clear') return;
+      var r = state.store.clear();
+      state.ev = C.createEvaluation();
+      state.recovered = false; state.loadError = null; state.attempted = false; state.errors = null;
+      state.lastSavedAt = null;
+      renderForm();
+      if (r.ok) { toast('Dados locais apagados.'); announce('Dados locais apagados.'); }
+      else toast('Não foi possível apagar os dados deste navegador.', 'erro');
+    });
+  }
+
+  function submit() {
+    state.attempted = true;
+    var idErr = C.validateIdentification(state.ev);
+    var check = C.validateResponses(state.ev.responses);
+    if (Object.keys(idErr).length || !check.valid) {
+      state.errors = { id: idErr, missing: check.missing, invalid: check.invalid };
+      renderForm();
+      var sum = document.getElementById('error-summary');
+      if (sum) { sum.focus(); sum.scrollIntoView({ block: 'start' }); }
+      return false;
+    }
+    state.errors = null;
+    state.ev.result = C.calculateSUS(state.ev.responses);
+    state.ev.status = 'concluida';
+    state.ev.submittedAt = new Date().toISOString();
+    persist();
+    renderResult();
+    var h = document.getElementById('result-title');
+    if (h) h.focus();
+    announce('Questionário concluído. Pontuação SUS: ' + C.formatNumber(state.ev.result.score) + ' de 100.');
+    return true;
+  }
+
+  function review() {
+    state.ev.status = 'em_andamento';
+    state.ev.submittedAt = null;
+    state.ev.result = null;
+    persist();
+    renderForm();
+    announce('Revisão das respostas. Envie novamente para recalcular a pontuação.');
+    var first = document.querySelector('fieldset.item input:checked') || document.getElementById('f-system');
+    if (first) first.focus();
+  }
+
+  /* ---------- renderização: formulário ---------- */
+
+  function fieldHtml(id, key, label, hint, opts) {
+    opts = opts || {};
+    var err = state.errors && state.errors.id && state.errors.id[key];
+    var describedby = [hint ? id + '-h' : '', err ? id + '-e' : ''].filter(Boolean).join(' ');
+    var attrs = 'id="' + id + '" name="' + key + '" data-key="' + key + '" maxlength="' + (C.LIMITS[key] || 200) + '"' +
+      (opts.required ? ' required aria-required="true"' : '') + (err ? ' aria-invalid="true"' : '') +
+      (describedby ? ' aria-describedby="' + describedby + '"' : '') + (opts.placeholder ? ' placeholder="' + esc(opts.placeholder) + '"' : '') +
+      (opts.autocomplete ? ' autocomplete="' + opts.autocomplete + '"' : '');
+    var control = opts.textarea
+      ? '<textarea ' + attrs + '>' + esc(state.ev[key]) + '</textarea>'
+      : '<input type="text" ' + attrs + ' value="' + esc(state.ev[key]) + '">';
+    return '<div class="field' + (opts.full ? ' full' : '') + (err ? ' has-error' : '') + '">' +
+      '<label for="' + id + '">' + esc(label) + (opts.required ? ' <span aria-hidden="true">*</span>' : ' <span class="muted small">(opcional)</span>') + '</label>' +
+      control +
+      (hint ? '<span class="hint" id="' + id + '-h">' + esc(hint) + '</span>' : '') +
+      (err ? '<span class="err" id="' + id + '-e">Erro: ' + esc(err) + '</span>' : '') +
+      '</div>';
+  }
+
+  function itemHtml(text, i) {
+    var n = i + 1;
+    var missing = state.errors && (state.errors.missing.indexOf(n) >= 0 || state.errors.invalid.indexOf(n) >= 0);
+    var opts = C.OPTIONS.map(function (o) {
+      var checked = state.ev.responses[i] === o.value;
+      return '<label><input type="radio" name="q' + n + '" value="' + o.value + '"' + (checked ? ' checked' : '') +
+        ' data-item="' + i + '"><span class="v" aria-hidden="true">' + o.value + '</span><span class="t">' + esc(o.label) +
+        '</span><span class="chk sr-only">(selecionado)</span></label>';
+    }).join('');
+    return '<li><fieldset class="item' + (missing ? ' missing' : '') + '" id="item-' + n + '"' +
+      (missing ? ' aria-describedby="item-' + n + '-e"' : '') + '>' +
+      '<legend><span class="num">' + (n < 10 ? '0' + n : n) + '</span><span>' + esc(text) + '</span></legend>' +
+      (missing ? '<p class="item-err" id="item-' + n + '-e"><span aria-hidden="true">!</span> Erro: escolha uma opção para este item.</p>' : '') +
+      '<div class="likert">' + opts + '</div></fieldset></li>';
+  }
+
+  function errorSummaryHtml() {
+    if (!state.errors) return '';
+    var li = [];
+    Object.keys(state.errors.id).forEach(function (k) {
+      var id = { system: 'f-system', participant: 'f-participant' }[k] || 'f-' + k;
+      li.push('<li><a href="#' + id + '" data-focus="' + id + '">' + esc(state.errors.id[k]) + '</a></li>');
+    });
+    state.errors.missing.concat(state.errors.invalid).sort(function (a, b) { return a - b; }).forEach(function (n) {
+      li.push('<li><a href="#item-' + n + '" data-focus="q' + n + '">Item ' + n + ' sem resposta</a></li>');
+    });
+    return '<div class="notice error" id="error-summary" tabindex="-1" role="alert">' +
+      '<h2>A pontuação ainda não pode ser calculada</h2>' +
+      '<p class="small">Corrija ' + (li.length === 1 ? 'o ponto abaixo' : 'os ' + li.length + ' pontos abaixo') + '. Nenhuma resposta é preenchida automaticamente.</p>' +
+      '<ul>' + li.join('') + '</ul></div>';
+  }
+
+  function recoveredHtml() {
+    if (state.loadError) {
+      return '<div class="notice error" role="alert"><h2>Não foi possível recuperar a avaliação salva</h2>' +
+        '<p class="small">' + (state.loadError === 'corrompido'
+          ? 'Os dados guardados neste navegador estão ilegíveis. Uma nova avaliação foi iniciada.'
+          : 'O armazenamento deste navegador não está acessível. Você pode preencher normalmente, mas exporte o CSV antes de fechar a página.') + '</p></div>';
+    }
+    if (!state.recovered) return '';
+    return '<div class="notice info" role="status"><h2>Avaliação recuperada deste navegador</h2>' +
+      '<p class="small">Iniciada em ' + esc(C.formatDateTime(state.ev.createdAt)) + ', última alteração em ' + esc(C.formatDateTime(state.ev.updatedAt)) +
+      '. ' + C.answeredCount(state.ev.responses) + ' de 10 itens já respondidos. Continue de onde parou.</p>' +
+      '<div class="actions"><button type="button" class="link" data-act="new">Iniciar outra avaliação</button></div></div>';
+  }
+
+  function progressHtml() {
+    var n = C.answeredCount(state.ev.responses);
+    return '<div class="progress" id="progress"><div class="progress-inner">' +
+      '<p class="progress-text" id="progress-text"><strong>' + n + '</strong> de 10 itens respondidos</p>' +
+      '<div class="meter" role="progressbar" aria-labelledby="progress-text" aria-valuemin="0" aria-valuemax="10" aria-valuenow="' + n + '"><span style="width:' + (n * 10) + '%"></span></div>' +
+      '</div></div>';
+  }
+  function updateProgress() {
+    var n = C.answeredCount(state.ev.responses);
+    var p = document.getElementById('progress-text');
+    if (!p) return;
+    p.innerHTML = '<strong>' + n + '</strong> de 10 itens respondidos';
+    var m = document.querySelector('#progress .meter');
+    m.setAttribute('aria-valuenow', n);
+    m.firstChild.style.width = (n * 10) + '%';
+  }
+
+  function renderForm() {
+    state.view = 'form';
+    var ev = state.ev;
+    $app.innerHTML =
+      '<header class="masthead">' +
+        '<p class="eyebrow">Avaliação de usabilidade</p>' +
+        '<h1>Escala de Usabilidade do Sistema (SUS)</h1>' +
+        '<p class="lede">Questionário de usabilidade percebida com 10 afirmações. Preencha a identificação e responda a todos os itens para calcular a pontuação.</p>' +
+        saveBarHtml() +
+      '</header>' +
+      progressHtml() +
+      '<main>' +
+      recoveredHtml() +
+      errorSummaryHtml() +
+      '<form id="sus-form" novalidate>' +
+        '<section class="block" aria-labelledby="h-id">' +
+          '<div class="block-head"><h2 id="h-id">Identificação da avaliação</h2><span class="muted small">* obrigatório</span></div>' +
+          '<div class="fields">' +
+            fieldHtml('f-system', 'system', 'Sistema avaliado', 'Nome ou código. Ex.: Plataforma de ensino', { required: true, full: true, autocomplete: 'off' }) +
+            fieldHtml('f-systemVersion', 'systemVersion', 'Versão do sistema avaliado', 'Ex.: 2.1 ou protótipo de março', { autocomplete: 'off' }) +
+            fieldHtml('f-participant', 'participant', 'Código do participante', 'Use um código, nunca o nome. Ex.: P001', { autocomplete: 'off' }) +
+            '<div class="field"><label for="f-code">Código da avaliação</label><input id="f-code" type="text" readonly value="' + esc(ev.code) + '"><span class="hint">Gerado automaticamente</span></div>' +
+            '<div class="field"><label for="f-date">Data da avaliação</label><input id="f-date" type="text" readonly value="' + esc(C.formatDate(ev.createdAt)) + '"><span class="hint">Preenchida automaticamente</span></div>' +
+          '</div>' +
+        '</section>' +
+        '<section class="block" aria-labelledby="h-q">' +
+          '<div class="block-head"><h2 id="h-q">Questionário</h2><span class="muted small">10 itens</span></div>' +
+          '<p class="instructions">Para cada afirmação, marque a opção que melhor expressa a sua experiência com o sistema avaliado. Responda a todos os itens, mesmo sem certeza; nesse caso, escolha a opção do meio.</p>' +
+          '<ol class="items">' + C.ITEMS.map(itemHtml).join('') + '</ol>' +
+        '</section>' +
+        '<section class="block" aria-labelledby="h-notes">' +
+          '<div class="block-head"><h2 id="h-notes">Observações do avaliador</h2><span class="muted small">Fora do questionário SUS</span></div>' +
+          '<div class="fields">' + fieldHtml('f-notes', 'notes', 'Observações', 'Contexto da sessão, tarefas realizadas, ocorrências. Não inclua dados pessoais.', { textarea: true, full: true }) + '</div>' +
+        '</section>' +
+        '<div class="toolbar">' +
+          '<button type="submit" class="primary" id="btn-submit">Calcular pontuação SUS</button>' +
+          '<div class="actions">' +
+            '<button type="button" data-act="draft">Exportar rascunho (CSV)</button>' +
+            '<button type="button" data-act="new">Nova avaliação</button>' +
+            '<button type="button" class="danger" data-act="clear">Limpar dados locais</button>' +
+          '</div>' +
+        '</div>' +
+      '</form>' +
+      privacyHtml() +
+      '</main>';
+    bindForm();
+  }
+
+  function privacyHtml() {
+    return '<details class="privacy"><summary>Como os dados são tratados</summary><ul>' +
+      '<li>Tudo é processado neste navegador. Nenhuma resposta é enviada a servidores, e não há rastreamento ou análise de terceiros.</li>' +
+      '<li>A avaliação é salva automaticamente no armazenamento local deste navegador e deste perfil. Ela não aparece em outros dispositivos, navegadores ou perfis.</li>' +
+      '<li>O armazenamento local é temporário e não substitui uma cópia de segurança: os dados se perdem ao limpar os dados do navegador, em navegação privada ou em falhas de armazenamento. Exporte o CSV ou o PDF ao final de cada sessão.</li>' +
+      '<li>Os dados permanecem até você iniciar uma nova avaliação ou usar “Limpar dados locais”.</li>' +
+      '<li>Itens em português: versão brasileira de Lourenço, Carmona e Lopes (2022), transcrita da Tabela 1 do artigo. Confirme a adequação ao seu público antes de usar em pesquisa.</li>' +
+      '</ul></details>';
+  }
+
+  function bindForm() {
+    var form = document.getElementById('sus-form');
+    form.addEventListener('submit', function (e) { e.preventDefault(); submit(); });
+    form.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t.type === 'radio' && t.dataset.item !== undefined) {
+        var i = +t.dataset.item;
+        var v = parseInt(t.value, 10);
+        if (!C.isValidResponse(v)) return;
+        state.ev.responses[i] = v;
+        persist();
+        updateProgress();
+        if (state.errors) {
+          var fs = document.getElementById('item-' + (i + 1));
+          fs.classList.remove('missing');
+          var er = document.getElementById('item-' + (i + 1) + '-e');
+          if (er) er.remove();
+          fs.removeAttribute('aria-describedby');
+        }
+      }
+    });
+    form.addEventListener('input', function (e) {
+      var key = e.target.dataset.key;
+      if (!key) return;
+      state.ev[key] = C.sanitizeText(e.target.value, C.LIMITS[key]);
+      persist();
+    });
+    $app.querySelectorAll('[data-act]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var act = b.dataset.act;
+        if (act === 'new') requestNew(b);
+        else if (act === 'clear') requestClear();
+        else if (act === 'draft') exportCSV(b);
+      });
+    });
+    $app.querySelectorAll('[data-focus]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        var id = a.dataset.focus;
+        var el = document.getElementById(id) || document.querySelector('input[name="' + id + '"]');
+        if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); }
+      });
+    });
+  }
+
+  /* ---------- renderização: resultado ---------- */
+
+  function renderResult() {
+    state.view = 'result';
+    var ev = state.ev;
+    var rep = C.buildReport(ev);
+    var pct = rep.score;
+    var ref = rep.interpretation.benchmark;
+    var rows = rep.items.map(function (it) {
+      return '<tr><td class="n">' + it.number + '</td><td>' + esc(it.text) + '</td><td>' + it.response + ' — ' + esc(it.responseLabel) +
+        '</td><td class="muted rule">' + esc(it.rule) + '</td><td class="n">' + it.contribution + '</td></tr>';
+    }).join('');
+    $app.innerHTML =
+      '<header class="result-head">' +
+        '<p class="eyebrow">Resultado da avaliação · concluída</p>' +
+        '<h1 id="result-title" tabindex="-1">' + esc(ev.system.trim()) + '</h1>' +
+        saveBarHtml() +
+      '</header>' +
+      '<main>' +
+        '<dl class="meta">' + rep.identification.map(function (p) {
+          return '<div><dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd></div>';
+        }).join('') + '</dl>' +
+        '<section class="score-panel" aria-labelledby="h-score">' +
+          '<h2 id="h-score" class="sr-only">Pontuação SUS</h2>' +
+          '<p class="score"><span class="value">' + esc(rep.scoreText) + '</span><span class="of">/ 100 · pontuação SUS</span></p>' +
+          '<div class="scale" role="img" aria-label="Escala de 0 a 100: pontuação ' + esc(rep.scoreText) + ', média de referência 68">' +
+            '<div class="track"><div class="fill" style="width:' + pct + '%"></div></div>' +
+            '<div class="ref" style="left:' + ref + '%"></div>' +
+            '<span class="tick start" style="left:0">0</span>' +
+            '<span class="tick" style="left:50%">50</span>' +
+            '<span class="tick end" style="left:100%">100</span>' +
+            '<span class="tick reflabel" style="left:' + ref + '%">┆ média de referência 68</span>' +
+          '</div>' +
+          '<div class="interp"><h2>Interpretação</h2><p>' + esc(rep.interpretation.text) + '</p></div>' +
+          '<ul class="caveats">' + rep.caveats.map(function (c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>' +
+        '</section>' +
+        (rep.notes ? '<section class="block"><div class="block-head"><h2>Observações do avaliador</h2></div><p style="white-space:pre-wrap">' + esc(rep.notes) + '</p></section>' : '') +
+        '<section class="block" aria-labelledby="h-table">' +
+          '<div class="block-head"><h2 id="h-table">Respostas e contribuições</h2></div>' +
+          '<div class="table-wrap" tabindex="0" role="region" aria-labelledby="h-table"><table>' +
+            '<caption>Contribuição ajustada de 0 a 4 por item, para transparência do cálculo. Não é uma medida independente de usabilidade.</caption>' +
+            '<thead><tr><th class="n" scope="col">Item</th><th scope="col">Afirmação</th><th scope="col">Resposta</th><th scope="col">Regra</th><th class="n" scope="col">Contrib.</th></tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+            '<tfoot><tr><td colspan="4">Soma das contribuições × 2,5</td><td class="n">' + rep.sum + ' × 2,5 = ' + esc(rep.scoreText) + '</td></tr></tfoot>' +
+          '</table></div>' +
+        '</section>' +
+        '<section class="block" aria-labelledby="h-formula">' +
+          '<div class="block-head"><h2 id="h-formula">Fórmula aplicada</h2><span class="muted small">' + esc(rep.algorithmVersion) + '</span></div>' +
+          '<p class="formula">' + esc(rep.formula) + '</p>' +
+          '<p class="muted small">Itens ímpares (1, 3, 5, 7, 9) são afirmações positivas e pares (2, 4, 6, 8, 10) negativas, conforme Brooke (1996). O resultado é sempre múltiplo de 2,5 e não é arredondado.</p>' +
+        '</section>' +
+        '<section class="block" aria-labelledby="h-ref">' +
+          '<div class="block-head"><h2 id="h-ref">Referências</h2></div>' +
+          '<ol class="refs">' + rep.references.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ol>' +
+        '</section>' +
+        '<div class="toolbar">' +
+          '<div class="actions">' +
+            '<button type="button" class="primary" data-act="pdf">Baixar PDF</button>' +
+            '<button type="button" data-act="csv">Exportar CSV</button>' +
+          '</div>' +
+          '<div class="actions">' +
+            '<button type="button" data-act="review">Revisar respostas</button>' +
+            '<button type="button" data-act="new">Nova avaliação</button>' +
+            '<button type="button" class="danger" data-act="clear">Limpar dados locais</button>' +
+          '</div>' +
+        '</div>' +
+        privacyHtml() +
+      '</main>';
+    $app.querySelectorAll('[data-act]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var act = b.dataset.act;
+        if (act === 'pdf') exportPDF(b);
+        else if (act === 'csv') exportCSV(b);
+        else if (act === 'review') review();
+        else if (act === 'new') requestNew(b);
+        else if (act === 'clear') requestClear();
+      });
+    });
+  }
+
+  /* ---------- inicialização ---------- */
+
+  function init() {
+    state.store = C.createStore(safeLocalStorage());
+    state.storageOk = state.store.available();
+    var loaded = state.store.load();
+    if (loaded.ok && loaded.evaluation) {
+      state.ev = loaded.evaluation;
+      state.recovered = hasData(state.ev);
+    } else {
+      state.ev = C.createEvaluation();
+      if (!loaded.ok) state.loadError = loaded.error;
+    }
+    if (state.ev.status === 'concluida') renderResult();
+    else renderForm();
+  }
+
+  window.SUSApp = {
+    state: state, submit: submit, review: review, startNew: startNew, requestNew: requestNew,
+    requestClear: requestClear, exportCSV: exportCSV, exportPDF: exportPDF
+  };
+
+  init();
+})();
+</script>
