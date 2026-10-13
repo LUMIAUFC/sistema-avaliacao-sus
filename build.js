@@ -9,7 +9,9 @@ const code = src('sus-core.js') + src('sus-pdf.js') + src('app.js');
 if (/<\/script>/i.test(code)) throw new Error('Código contém </script>');
 
 const logo = 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, 'src', 'assets', 'logo-lumia.png')).toString('base64');
+const logoUfc = 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, 'src', 'assets', 'logo-ufc.png')).toString('base64');
 const filled = src('template.html')
+  .replace('@@LOGO_UFC@@', () => logoUfc)
   .replace('@@LOGO@@', () => logo)
   .replace('/*@@CORE@@*/', () => src('sus-core.js'))
   .replace('/*@@PDF@@*/', () => src('sus-pdf.js'))

@@ -42,7 +42,7 @@ src/sus-core.js     Instrumento, validação, cálculo, interpretação, CSV, mo
 src/sus-pdf.js      Renderização do relatório em PDF (A4) a partir do modelo
 src/app.js          Interface: formulário, resultado, diálogos, salvamento automático, downloads
 src/template.html   Estrutura e estilos (identidade LUMIA)
-src/assets/         Logotipo do LUMIA, embutido no HTML no build
+src/assets/         Logotipos da UFC e do LUMIA, embutidos no HTML no build
 build.js            Junta tudo em dist/index.html (documento completo)
 .github/workflows/  Publicação automática no GitHub Pages
 tests/core.test.js  Testes unitários (cálculo, validação, CSV, armazenamento)
@@ -72,7 +72,7 @@ Resultado da última execução: **42 testes, 42 aprovados, 0 falhas.** O teste 
 | Proteção contra injeção de fórmulas | Campos que começam com `= + - @` recebem apóstrofo inicial. |
 | Interpretação apenas comparativa | Só a média de 68 (Sauro, 2011) é usada, sempre com fonte e sem rótulos "bom"/"ruim". Nenhum percentil ou classificação foi implementado. |
 | Polaridade dos itens oculta ao participante | Mostrar "positivo/negativo" durante o preenchimento poderia induzir respostas. Ela aparece no resultado. |
-| Identidade visual LUMIA | Cores amostradas do logotipo do laboratório (violeta `#A06CE0`, amarelo `#F8C03C`, ciano `#1CC2DA`) e fio em degradê. Para texto e botões usa-se um violeta mais profundo (`#6A3FC0`), que atinge contraste AA. Tipografia: Montserrat (títulos), Nunito Sans (texto), DM Mono (dados). O logotipo (`src/assets/logo-lumia.png`) vem do repositório VProgForms da LUMIAUFC. |
+| Identidade visual LUMIA | Cores amostradas do logotipo do laboratório (violeta `#A06CE0`, amarelo `#F8C03C`, ciano `#1CC2DA`) e fio em degradê. Para texto e botões usa-se um violeta mais profundo (`#6A3FC0`), que atinge contraste AA. Tipografia: Montserrat (títulos), Nunito Sans (texto), DM Mono (dados). Os logotipos do LUMIA e da UFC (`src/assets/`) vêm do repositório VProgForms da LUMIAUFC; o brasão da UFC aparece antes do logotipo do LUMIA. |
 | Downloads | No claude.ai usa a confirmação de download da plataforma; fora dele, download comum pelo navegador. |
 
 ## Itens em português

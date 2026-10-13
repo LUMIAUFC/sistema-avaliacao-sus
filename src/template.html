@@ -73,8 +73,11 @@ a { color: var(--accent); text-underline-offset: 2px; }
 /* Faixa de marca */
 .brandbar { background: var(--band); color: var(--band-ink); }
 .brandbar-inner { max-width: 48rem; margin: 0 auto; padding-inline: 16px; padding-block: .9rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.brandbar .logos { display: flex; align-items: center; gap: .9rem; min-width: 0; }
 .brandbar img { height: 46px; width: auto; display: block; max-width: 100%; }
+.brandbar .logo-sep { width: 1px; height: 34px; background: color-mix(in srgb, var(--band-ink) 28%, transparent); flex: none; }
 .brandbar .tag { font-family: var(--font-data); font-size: .72rem; letter-spacing: .06em; color: var(--band-ink); opacity: .8; }
+@media (max-width: 30rem) { .brandbar .tag { display: none; } }
 .brandline { height: 3px; background: var(--grad); }
 
 /* Cabeçalho da página */
@@ -215,8 +218,12 @@ tfoot td { font-weight: 700; border-bottom: none; }
 
 <header class="brandbar">
   <div class="brandbar-inner">
-    <img src="@@LOGO@@" width="130" height="46" alt="LUMIA — Laboratório de Usabilidade, Mídias e Inteligência Artificial">
-    <span class="tag">UFC · Escala SUS</span>
+    <div class="logos">
+      <img class="logo-ufc" src="@@LOGO_UFC@@" width="36" height="46" alt="Universidade Federal do Ceará">
+      <span class="logo-sep" aria-hidden="true"></span>
+      <img class="logo-lumia" src="@@LOGO@@" width="130" height="46" alt="LUMIA — Laboratório de Usabilidade, Mídias e Inteligência Artificial">
+    </div>
+    <span class="tag">Escala SUS</span>
   </div>
   <div class="brandline" aria-hidden="true"></div>
 </header>
